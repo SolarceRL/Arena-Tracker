@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arena Champion Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C89B3C;
+    --gold-light: #F0E6D3;
+    --gold-dim: #785a28;
+    --bg: #0a0a0f;
+    --bg2: #0f0f1a;
+    --bg3: #141420;
+    --bg4: #1a1a2e;
+    --surface: #16162a;
+    --surface2: #1e1e35;
+    --border: rgba(200,155,60,0.18);
+    --border-hover: rgba(200,155,60,0.45);
+    --text: #e8e0d0;
+    --text-muted: #7a7060;
+    --text-dim: #4a4438;
+    --done-opacity: 0.28;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(200,155,60,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 80% at 90% 50%, rgba(10,60,120,0.08) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(255,255,255,0.008) 60px, rgba(255,255,255,0.008) 61px),
+      repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(255,255,255,0.008) 60px, rgba(255,255,255,0.008) 61px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ── HEADER ── */
+  .hero {
+    padding: 48px 0 36px;
+    text-align: center;
+    position: relative;
+  }
+
+  .hero::after {
+    content: '';
+    display: block;
+    width: 320px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 28px auto 0;
+  }
+
+  .eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 700;
+    color: var(--gold-light);
+    line-height: 1.1;
+    text-shadow: 0 0 60px rgba(200,155,60,0.3);
+    letter-spacing: -0.5px;
+  }
+
+  h1 span { color: var(--gold); }
+
+  .hero-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 10px;
+    font-weight: 300;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── STATS BAR ── */
+  .stats-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 110px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-family: 'Cinzel', serif;
+  }
+
+  .stat-val {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold);
+    line-height: 1;
+  }
+
+  .stat-val.total { color: var(--text); }
+
+  .prog-wrap {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .prog-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 1px;
+  }
+
+  .prog-track {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .prog-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold), #f0d070);
+    border-radius: 3px;
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+  }
+
+  .prog-fill::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 20px;
+    background: rgba(255,255,255,0.3);
+    filter: blur(4px);
+  }
+
+  /* ── CONTROLS ── */
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 340px;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 15px;
+    pointer-events: none;
+  }
+
+  #search {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px 10px 36px;
+    font-size: 13px;
+    font-family: 'Outfit', sans-serif;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  #search::placeholder { color: var(--text-dim); }
+  #search:focus { border-color: var(--border-hover); }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn:hover { border-color: var(--border-hover); color: var(--text); background: var(--surface2); }
+
+  .btn.active {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(200,155,60,0.08);
+  }
+
+  .btn-reset { color: var(--text-dim); }
+  .btn-reset:hover { color: #c0453a; border-color: rgba(192,69,58,0.4); background: rgba(192,69,58,0.06); }
+
+  .btn-random {
+    border-color: rgba(200,155,60,0.4);
+    color: var(--gold);
+    background: rgba(200,155,60,0.06);
+  }
+  .btn-random:hover { background: rgba(200,155,60,0.14); border-color: var(--gold); color: var(--gold-light); }
+
+  /* ── SORT ROW ── */
+  .sort-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .sort-label {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-right: 2px;
+  }
+  .sort-btn {
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .sort-btn:hover { border-color: var(--border-hover); color: var(--text); }
+  .sort-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(200,155,60,0.08); }
+
+  /* ── RANDOM MODAL ── */
+  .modal-bg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--bg3);
+    border: 1px solid var(--border-hover);
+    border-radius: 16px;
+    padding: 36px 40px;
+    text-align: center;
+    max-width: 320px;
+    width: 90%;
+    position: relative;
+    animation: popIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .modal-close {
+    position: absolute;
+    top: 12px; right: 14px;
+    background: none; border: none;
+    color: var(--text-dim); font-size: 20px;
+    cursor: pointer; line-height: 1;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    opacity: 0.8;
+  }
+  .modal-img {
+    width: 96px;
+    height: 96px;
+    border-radius: 12px;
+    border: 2px solid var(--gold);
+    margin: 0 auto 14px;
+    display: block;
+    object-fit: cover;
+  }
+  .modal-name {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold-light);
+    margin-bottom: 6px;
+  }
+  .modal-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+  .modal-actions { display: flex; gap: 10px; justify-content: center; }
+  .modal-btn {
+    padding: 9px 18px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .modal-btn:hover { border-color: var(--border-hover); color: var(--text); background: var(--surface2); }
+  .modal-btn.primary {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(200,155,60,0.08);
+  }
+  .modal-btn.primary:hover { background: rgba(200,155,60,0.18); color: var(--gold-light); }
+
+  /* ── SECTION DIVIDER ── */
+  .section-label {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* ── GRID ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    gap: 8px;
+  }
+
+  .champ {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 4px 7px;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    background: var(--surface);
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s, opacity 0.2s;
+    user-select: none;
+  }
+
+  .champ:hover {
+    border-color: var(--border-hover);
+    background: var(--surface2);
+    transform: translateY(-2px);
+  }
+
+  .champ:active { transform: translateY(0); }
+
+  .champ.done {
+    opacity: var(--done-opacity);
+  }
+
+  .champ.done:hover { opacity: 0.6; }
+
+  .champ.done .badge { opacity: 1; transform: scale(1); }
+
+  .img-wrap {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    overflow: visible;
+    flex-shrink: 0;
+  }
+
+  .img-wrap img {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    display: block;
+    object-fit: cover;
+    border: 1px solid rgba(200,155,60,0.2);
+  }
+
+  .champ:hover .img-wrap img {
+    border-color: rgba(200,155,60,0.5);
+  }
+
+  .badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--gold);
+    border: 2px solid var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 2;
+  }
+
+  .badge svg {
+    width: 9px;
+    height: 9px;
+    stroke: #0a0a0f;
+    stroke-width: 3;
+    fill: none;
+  }
+
+  .cname {
+    font-size: 9.5px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.2;
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+  }
+
+  .champ.done .cname { color: var(--text-dim); }
+  .champ:hover .cname { color: var(--text); }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+    font-size: 14px;
+    display: none;
+    grid-column: 1/-1;
+  }
+
+  .empty svg { display: block; margin: 0 auto 12px; opacity: 0.3; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .champ { animation: fadeUp 0.3s both; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">League of Legends</div>
+    <h1>Arena <span>Champion</span> Tracker</h1>
+    <p class="hero-sub">Click a champion to mark them as complete</p>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Completed</div>
+      <div class="stat-val" id="s-done">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Remaining</div>
+      <div class="stat-val total" id="s-left">0</div>
+    </div>
+    <div class="prog-wrap">
+      <div class="prog-label">
+        <span>Progress</span>
+        <span id="s-pct">0%</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="pfill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="search-wrap">
+      <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="search" placeholder="Search champion…" oninput="render()">
+    </div>
+    <button class="btn" id="hbtn" onclick="toggleHide()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      Hide completed
+    </button>
+    <button class="btn btn-random" onclick="pickRandom()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+      Random Pick
+    </button>
+    <button class="btn btn-reset" onclick="resetAll()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+      Reset all
+    </button>
+  </div>
+
+  <div class="sort-row">
+    <span class="sort-label">Sort</span>
+    <button class="sort-btn active" id="sort-az" onclick="setSort('az')">A → Z</button>
+    <button class="sort-btn" id="sort-za" onclick="setSort('za')">Z → A</button>
+    <button class="sort-btn" id="sort-incomplete" onclick="setSort('incomplete')">Incomplete first</button>
+    <button class="sort-btn" id="sort-complete" onclick="setSort('complete')">Complete first</button>
+  </div>
+
+  <div class="section-label" id="section-lbl">All Champions</div>
+  <div class="grid" id="grid">
+    <div class="empty" id="empty">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      No champions match your search.
+    </div>
+  </div>
+
+</div>
+
+<!-- Random Picker Modal -->
+<div class="modal-bg" id="modal-bg" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModalDirect()">×</button>
+    <div class="modal-eyebrow">Your next champion</div>
+    <img class="modal-img" id="modal-img" src="" alt="">
+    <div class="modal-name" id="modal-name"></div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="pickRandom()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+        Reroll
+      </button>
+      <button class="modal-btn primary" onclick="markAndClose()">Mark complete ✓</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CHAMPS = [
+  ["Aatrox","Aatrox"],["Ahri","Ahri"],["Akali","Akali"],["Akshan","Akshan"],["Alistar","Alistar"],
+  ["Ambessa","Ambessa"],["Amumu","Amumu"],["Anivia","Anivia"],["Annie","Annie"],["Aphelios","Aphelios"],
+  ["Ashe","Ashe"],["Aurelion Sol","AurelionSol"],["Aurora","Aurora"],["Azir","Azir"],["Bard","Bard"],
+  ["Bel'Veth","Belveth"],["Blitzcrank","Blitzcrank"],["Brand","Brand"],["Braum","Braum"],["Briar","Briar"],
+  ["Caitlyn","Caitlyn"],["Camille","Camille"],["Cassiopeia","Cassiopeia"],["Cho'Gath","Chogath"],
+  ["Corki","Corki"],["Darius","Darius"],["Diana","Diana"],["Dr. Mundo","DrMundo"],["Draven","Draven"],
+  ["Ekko","Ekko"],["Elise","Elise"],["Evelynn","Evelynn"],["Ezreal","Ezreal"],["Fiddlesticks","Fiddlesticks"],
+  ["Fiora","Fiora"],["Fizz","Fizz"],["Galio","Galio"],["Gangplank","Gangplank"],["Garen","Garen"],
+  ["Gnar","Gnar"],["Gragas","Gragas"],["Graves","Graves"],["Gwen","Gwen"],["Hecarim","Hecarim"],
+  ["Heimerdinger","Heimerdinger"],["Hwei","Hwei"],["Illaoi","Illaoi"],["Irelia","Irelia"],["Ivern","Ivern"],
+  ["Janna","Janna"],["Jarvan IV","JarvanIV"],["Jax","Jax"],["Jayce","Jayce"],["Jhin","Jhin"],
+  ["Jinx","Jinx"],["K'Sante","KSante"],["Kai'Sa","Kaisa"],["Kalista","Kalista"],["Karma","Karma"],
+  ["Karthus","Karthus"],["Kassadin","Kassadin"],["Katarina","Katarina"],["Kayle","Kayle"],["Kayn","Kayn"],
+  ["Kennen","Kennen"],["Kha'Zix","Khazix"],["Kindred","Kindred"],["Kled","Kled"],["Kog'Maw","KogMaw"],
+  ["LeBlanc","Leblanc"],["Lee Sin","LeeSin"],["Leona","Leona"],["Lillia","Lillia"],["Lissandra","Lissandra"],
+  ["Lucian","Lucian"],["Lulu","Lulu"],["Lux","Lux"],["Malphite","Malphite"],["Malzahar","Malzahar"],
+  ["Maokai","Maokai"],["Master Yi","MasterYi"],["Mel","Mel"],["Milio","Milio"],["Miss Fortune","MissFortune"],
+  ["Mordekaiser","Mordekaiser"],["Morgana","Morgana"],["Naafiri","Naafiri"],["Nami","Nami"],
+  ["Nasus","Nasus"],["Nautilus","Nautilus"],["Neeko","Neeko"],["Nidalee","Nidalee"],["Nilah","Nilah"],
+  ["Nocturne","Nocturne"],["Nunu & Willump","Nunu"],["Olaf","Olaf"],["Orianna","Orianna"],["Ornn","Ornn"],
+  ["Pantheon","Pantheon"],["Poppy","Poppy"],["Pyke","Pyke"],["Qiyana","Qiyana"],["Quinn","Quinn"],
+  ["Rakan","Rakan"],["Rammus","Rammus"],["Rek'Sai","RekSai"],["Rell","Rell"],["Renata Glasc","Renata"],
+  ["Renekton","Renekton"],["Rengar","Rengar"],["Riven","Riven"],["Rumble","Rumble"],["Ryze","Ryze"],
+  ["Samira","Samira"],["Sejuani","Sejuani"],["Senna","Senna"],["Seraphine","Seraphine"],["Sett","Sett"],
+  ["Shaco","Shaco"],["Shen","Shen"],["Shyvana","Shyvana"],["Singed","Singed"],["Sion","Sion"],
+  ["Sivir","Sivir"],["Skarner","Skarner"],["Smolder","Smolder"],["Sona","Sona"],["Soraka","Soraka"],
+  ["Swain","Swain"],["Sylas","Sylas"],["Syndra","Syndra"],["Tahm Kench","TahmKench"],["Taliyah","Taliyah"],
+  ["Talon","Talon"],["Taric","Taric"],["Teemo","Teemo"],["Thresh","Thresh"],["Tristana","Tristana"],
+  ["Trundle","Trundle"],["Tryndamere","Tryndamere"],["Twisted Fate","TwistedFate"],["Twitch","Twitch"],
+  ["Udyr","Udyr"],["Urgot","Urgot"],["Varus","Varus"],["Vayne","Vayne"],["Veigar","Veigar"],
+  ["Vel'Koz","Velkoz"],["Vex","Vex"],["Vi","Vi"],["Viego","Viego"],["Viktor","Viktor"],
+  ["Vladimir","Vladimir"],["Volibear","Volibear"],["Warwick","Warwick"],["Wukong","MonkeyKing"],
+  ["Xayah","Xayah"],["Xerath","Xerath"],["Xin Zhao","XinZhao"],["Yasuo","Yasuo"],["Yone","Yone"],
+  ["Yorick","Yorick"],["Yunara","Yunara"],["Yuumi","Yuumi"],["Zac","Zac"],["Zaahen","Zaahen"],["Zed","Zed"],["Zeri","Zeri"],
+  ["Ziggs","Ziggs"],["Zilean","Zilean"],["Zoe","Zoe"],["Zyra","Zyra"]
+];
+
+const VER = "16.9.1";
+const BASE = `https://ddragon.leagueoflegends.com/cdn/${VER}/img/champion/`;
+
+let done = new Set();
+try { done = new Set(JSON.parse(localStorage.getItem('arena_done') || '[]')); } catch(e) {}
+let hideMode = false;
+let sortMode = 'az';
+let currentRandom = null;
+
+function save() {
+  try { localStorage.setItem('arena_done', JSON.stringify([...done])); } catch(e) {}
+}
+
+function updateStats() {
+  const total = CHAMPS.length, n = done.size, pct = Math.round(n / total * 100);
+  document.getElementById('s-done').textContent = n;
+  document.getElementById('s-left').textContent = total - n;
+  document.getElementById('s-pct').textContent = pct + '%';
+  document.getElementById('pfill').style.width = pct + '%';
+}
+
+function getSorted() {
+  const list = [...CHAMPS];
+  if (sortMode === 'az') return list;
+  if (sortMode === 'za') return list.slice().reverse();
+  if (sortMode === 'incomplete') return list.sort((a,b) => {
+    const ad = done.has(a[1]) ? 1 : 0, bd = done.has(b[1]) ? 1 : 0;
+    return ad - bd || a[0].localeCompare(b[0]);
+  });
+  if (sortMode === 'complete') return list.sort((a,b) => {
+    const ad = done.has(a[1]) ? 1 : 0, bd = done.has(b[1]) ? 1 : 0;
+    return bd - ad || a[0].localeCompare(b[0]);
+  });
+  return list;
+}
+
+function setSort(mode) {
+  sortMode = mode;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sort-' + mode).classList.add('active');
+  render();
+}
+
+function toggle(key) {
+  done.has(key) ? done.delete(key) : done.add(key);
+  save();
+  updateStats();
+  const el = document.getElementById('ch_' + key);
+  if (!el) return;
+  el.classList.toggle('done', done.has(key));
+  if (hideMode && done.has(key)) {
+    el.style.opacity = '0';
+    setTimeout(() => el.style.display = 'none', 200);
+    setTimeout(checkEmpty, 250);
+  }
+  if (sortMode === 'incomplete' || sortMode === 'complete') render();
+}
+
+function checkEmpty() {
+  const vis = [...document.querySelectorAll('.champ')].filter(e => e.style.display !== 'none').length;
+  document.getElementById('empty').style.display = vis === 0 ? 'block' : 'none';
+}
+
+function toggleHide() {
+  hideMode = !hideMode;
+  const btn = document.getElementById('hbtn');
+  btn.classList.toggle('active', hideMode);
+  if (hideMode) {
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Show completed`;
+  } else {
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Hide completed`;
+  }
+  render();
+}
+
+function resetAll() {
+  if (!confirm('Reset all progress? This cannot be undone.')) return;
+  done.clear();
+  save();
+  render();
+  updateStats();
+}
+
+// ── RANDOM PICKER ──
+function pickRandom() {
+  const incomplete = CHAMPS.filter(([,key]) => !done.has(key));
+  if (incomplete.length === 0) {
+    alert('You\'ve completed every champion! Incredible!');
+    return;
+  }
+  const [name, key] = incomplete[Math.floor(Math.random() * incomplete.length)];
+  currentRandom = { name, key };
+  document.getElementById('modal-img').src = BASE + key + '.png';
+  document.getElementById('modal-img').alt = name;
+  document.getElementById('modal-name').textContent = name;
+  const remaining = incomplete.length;
+  document.getElementById('modal-sub').textContent = remaining + ' champion' + (remaining === 1 ? '' : 's') + ' remaining';
+  const bg = document.getElementById('modal-bg');
+  bg.classList.add('show');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-bg')) closeModalDirect();
+}
+
+function closeModalDirect() {
+  document.getElementById('modal-bg').classList.remove('show');
+  currentRandom = null;
+}
+
+function markAndClose() {
+  if (!currentRandom) return;
+  done.add(currentRandom.key);
+  save();
+  updateStats();
+  const el = document.getElementById('ch_' + currentRandom.key);
+  if (el) {
+    el.classList.add('done');
+    if (hideMode) {
+      el.style.opacity = '0';
+      setTimeout(() => el.style.display = 'none', 200);
+    }
+  }
+  if (sortMode === 'incomplete' || sortMode === 'complete') render();
+  closeModalDirect();
+}
+
+function render() {
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const grid = document.getElementById('grid');
+  [...grid.querySelectorAll('.champ')].forEach(e => e.remove());
+
+  let vis = 0;
+  getSorted().forEach(([name, key], i) => {
+    if (q && !name.toLowerCase().includes(q)) return;
+    if (hideMode && done.has(key)) return;
+    vis++;
+
+    const d = document.createElement('div');
+    d.className = 'champ' + (done.has(key) ? ' done' : '');
+    d.id = 'ch_' + key;
+    d.style.animationDelay = Math.min(i * 6, 280) + 'ms';
+    d.onclick = () => toggle(key);
+    d.innerHTML = `
+      <div class="img-wrap">
+        <img src="${BASE}${key}.png" alt="${name}" loading="lazy">
+        <div class="badge">
+          <svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg>
+        </div>
+      </div>
+      <div class="cname">${name}</div>`;
+    grid.insertBefore(d, document.getElementById('empty'));
+  });
+
+  document.getElementById('empty').style.display = vis === 0 ? 'block' : 'none';
+
+  const lbl = document.getElementById('section-lbl');
+  lbl.textContent = hideMode
+    ? `Remaining (${vis})`
+    : q ? `Results for "${q}" (${vis})` : `All Champions (${CHAMPS.length})`;
+}
+
+render();
+updateStats();
+</script>
+</body>
+</html>
